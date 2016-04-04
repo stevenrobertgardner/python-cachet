@@ -5,7 +5,8 @@
  and makes the returned stuff be nice and pythony.
 """
 import logging
-import urllib
+import urllib.request
+import urllib.error
 import json
 
 class Connection(object):
@@ -25,13 +26,14 @@ class Connection(object):
         self.logger = logging.getLogger(__name__)
         self.cachet_api_url = cachet_url + '/api/v1'
         self.api_token = api_token
-        self.logger.info("Setting cachet server URL: %s, API Token: %s",
-                         self.cachet_api_url, self.api_token)
+        self.logger.debug("Setting cachet server URL: %s, API Token: %s",
+                          self.cachet_api_url, self.api_token)
 
     def _do_get(self, url, timeout=1):
         """ Prepare and make urllib GET request, process and translate json response.
         Args:
           url (string): the URL to get
+          timeout (int): timeout in seconds
         Returns: Result of get call as Pythonized JSON
         """
         headers = {'X-Cachet-Token' : self.api_token}
@@ -45,6 +47,7 @@ class Connection(object):
         except urllib.error.URLError as e:
             print("URLError")
         # handle json exceptions here
+        # also need to handle 404 here, and log error
         return None
 
     def _get(self, endpoint):
@@ -57,13 +60,15 @@ class Connection(object):
         url = self.cachet_api_url + endpoint
         while True:
             response_json = self._do_get(url)
-            data = response_json['data']
+            if not response_json:
+                break
+            data = response_json.get('data')
             if not isinstance(data, list):
                 data = [data]
             results.extend(data)
             if not response_json.get('meta'):
                 break
-            url = response_json['meta']['pagination']['next_page']
+            url = response_json['meta']['pagination'].get('next_page')
             if not url:
                 break
         return results
