@@ -31,6 +31,7 @@ class Connection(object):
           params (dictionary): request parameters.
         Returns: A list containing the response(s), or None
         """
+        timeout = 1  # Request timeout in seconds
         results = []
         headers = {'X-Cachet-Token': self.api_token}
         url = self.cachet_url + endpoint
@@ -38,7 +39,7 @@ class Connection(object):
         # like catch 404s and stuff...
         try:
             while True:
-                response = requests.get(url, params=params, headers=headers)
+                response = requests.get(url, params=params, headers=headers, timeout=timeout)
                 response_json = response.json()
                 data = response_json['data']
                 if not isinstance(data, list):
@@ -70,8 +71,7 @@ class Connection(object):
         """ Test API endpoint (GET /ping).
         Returns: Boolean
         """
-        result = self._get('/ping', None)
-        return result[0] == "Pong!"
+        return self.get_unwrapped('/ping') == "Pong!"
 
     def version(self):
         """ Cachet version (GET /version).
@@ -88,7 +88,7 @@ class Connection(object):
         return self._get('/components', None)
 
     def get_component(self, component_id):
-        """ Return a single component (GET /components/:id).
+        """ Return a single component, or None (GET /components/:id).
         Returns: A dictionary with component information.
         """
         url = '/components/' + str(component_id)
@@ -133,7 +133,7 @@ class Connection(object):
         pass
 
     def get_component_groups(self):
-        """ GET /components/groups
+        """ Get all component groups which have been created, or None (GET /components/groups).
         Returns: A list of dicts with component group information.
         """
         return self._get('/components/groups', None)
