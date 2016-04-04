@@ -6,7 +6,6 @@
 """
 import requests
 #import logging
-#import json
 
 
 class Connection(object):
@@ -14,6 +13,7 @@ class Connection(object):
     Class representing a connection to a Cachet server,
     even though it's not really a connection...
     """
+
     def __init__(self, cachet_url, api_token):
         """Return an object representing a Cachet server connection.
         Args:
@@ -27,8 +27,9 @@ class Connection(object):
     def _get(self, endpoint, params):
         """ Handle http get, return response
         Args:
-          request (dictionary): request parameters.
-        Returns: A list containing the response(s)
+          endpoint (string): the endpoint to get.
+          params (dictionary): request parameters.
+        Returns: A list containing the response(s), or None
         """
         results = []
         headers = {'X-Cachet-Token': self.api_token}
@@ -40,7 +41,7 @@ class Connection(object):
                 response = requests.get(url, params=params, headers=headers)
                 response_json = response.json()
                 data = response_json['data']
-                if not isinstance(type(data), list):
+                if not isinstance(data, list):
                     data = [data]
                 results.extend(data)
                 if not response_json.get('meta'):
@@ -51,6 +52,16 @@ class Connection(object):
         except:
             pass
         return results
+
+    def get_unwrapped(self, url):
+        """Return the first item from list returned by _get, or None
+        Args:
+          url (string): URL to get
+        Returns: A single item from the get call, usually a dict.
+        """
+        result = self._get(url, None)
+        if result:
+            return result[0]
 
 #### API Calls for utility, components, incidents, metrics, subscribers ####
 
@@ -64,27 +75,24 @@ class Connection(object):
 
     def version(self):
         """ Cachet version (GET /version).
-        May be currently unimplemented in server
+        Appears to be unimplemented in Docker v. 2.0.1
         Returns: version string
         """
-        result = self._get('/version', None)
-        if result:
-            return result[0]
-
+        return self.get_unwrapped('/version')
 
 # components
     def get_components(self):
         """ Return all components that have been created (GET /components).
         Returns: A list of dictionaries with component information.
         """
-        result = self._get('/components', None)
-        return result
+        return self._get('/components', None)
 
     def get_component(self, component_id):
         """ Return a single component (GET /components/:id).
         Returns: A dictionary with component information.
         """
-        pass
+        url = '/components/' + str(component_id)
+        return self.get_unwrapped(url)
 
     def create_component(self, name, status, desc=None,
                          link=None, order=0, group_id=0, enabled=True):
@@ -128,15 +136,16 @@ class Connection(object):
         """ GET /components/groups
         Returns: A list of dicts with component group information.
         """
-        pass
+        return self._get('/components/groups', None)
 
     def get_component_group(self, group_id):
         """ GET /components/groups/:id
         Args:
           group_id (int): ID of the component group.
-        Returns: A list of dicts with component group information.
+        Returns: A dict with component group information.
         """
-        pass
+        url = '/components/groups/' + str(group_id)
+        return self.get_unwrapped(url)
 
     def create_component_group(self):
         """ POST /components/groups
@@ -173,7 +182,7 @@ class Connection(object):
         """ Return all incidents (GET /incidents)
         Return: List of incident dicts
         """
-        pass
+        return self._get('/incidents', None)
 
     def get_incident(self, incident_id):
         """ Return a specific incident(GET /incidents/:id)
@@ -181,7 +190,8 @@ class Connection(object):
           incident_id (int): ID of the incident to get.
         Return: Dict of incident information
         """
-        pass
+        url = '/incidents/' + str(incident_id)
+        return self.get_unwrapped(url)
 
     def create_incident(self, name, message, status, visible=True,
                         component_id=None, component_status=None, notify=False):
@@ -228,7 +238,7 @@ class Connection(object):
         """ Returns all configured metrics (GET /metrics)
         Returns: a list of dicts of metric info.
         """
-        pass
+        return self._get('/metrics', None)
 
     def create_metric(self, name, suffix, description, default, display=True):
         """ Create a new metric (POST /metrics)
@@ -248,7 +258,8 @@ class Connection(object):
           metric_id: the id of the metric to get
         Returns: A dictionary with metric information.
         """
-        pass
+        url = '/metrics/' + str(metric_id)
+        return self.get_unwrapped(url)
 
     def delete_metric(self, metric_id):
         """ Delete a metric (DELETE /metrics/:id)
@@ -279,7 +290,7 @@ class Connection(object):
         """ Get all subscribers (GET /subscribers)
         Returns: A list of subscriber dicts.
         """
-        pass
+        return self._get('/subscribers', None)
 
     def create_subscriber(self, email, verify=False):
         """ Create a new subscriber (POST /subscribers)
