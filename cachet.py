@@ -4,9 +4,9 @@
  Makes an authenticated connection,  passes on API requests
  and makes the returned stuff be nice and pythony.
 """
-import requests
-#import logging
-
+import logging
+import urllib
+import json
 
 class Connection(object):
     """
@@ -21,46 +21,60 @@ class Connection(object):
           api_token (string): API authentication token.
         Returns: A cachet 'connection' object.
         """
-        self.cachet_url = cachet_url + '/api/v1'
+        ### TODO - validate args, clean up URL
+        self.logger = logging.getLogger(__name__)
+        self.cachet_api_url = cachet_url + '/api/v1'
         self.api_token = api_token
+        self.logger.info("Setting cachet server URL: %s, API Token: %s",
+                         self.cachet_api_url, self.api_token)
 
-    def _get(self, endpoint, params):
-        """ Handle http get, return response
+    def _do_get(self, url, timeout=1):
+        """ Prepare and make urllib GET request, process and translate json response.
+        Args:
+          url (string): the URL to get
+        Returns: Result of get call as Pythonized JSON
+        """
+        headers = {'X-Cachet-Token' : self.api_token}
+        try:
+            request = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                data = response.read().decode('utf-8')
+                return json.loads(data)
+        except urllib.error.HTTPError as e:
+            print("HTTPError")
+        except urllib.error.URLError as e:
+            print("URLError")
+        # handle json exceptions here
+        return None
+
+    def _get(self, endpoint):
+        """ Broker the get request from a API call, handle paging
         Args:
           endpoint (string): the endpoint to get.
-          params (dictionary): request parameters.
         Returns: A list containing the response(s), or None
         """
-        timeout = 1  # Request timeout in seconds
         results = []
-        headers = {'X-Cachet-Token': self.api_token}
-        url = self.cachet_url + endpoint
-        # Do something more responsible here,
-        # like catch 404s and stuff...
-        try:
-            while True:
-                response = requests.get(url, params=params, headers=headers, timeout=timeout)
-                response_json = response.json()
-                data = response_json['data']
-                if not isinstance(data, list):
-                    data = [data]
-                results.extend(data)
-                if not response_json.get('meta'):
-                    break
-                url = response_json['meta']['pagination']['next_page']
-                if not url:
-                    break
-        except:
-            pass
+        url = self.cachet_api_url + endpoint
+        while True:
+            response_json = self._do_get(url)
+            data = response_json['data']
+            if not isinstance(data, list):
+                data = [data]
+            results.extend(data)
+            if not response_json.get('meta'):
+                break
+            url = response_json['meta']['pagination']['next_page']
+            if not url:
+                break
         return results
 
-    def get_unwrapped(self, url):
+    def _get_unwrapped(self, url):
         """Return the first item from list returned by _get, or None
         Args:
           url (string): URL to get
         Returns: A single item from the get call, usually a dict.
         """
-        result = self._get(url, None)
+        result = self._get(url)
         if result:
             return result[0]
 
@@ -71,28 +85,28 @@ class Connection(object):
         """ Test API endpoint (GET /ping).
         Returns: Boolean
         """
-        return self.get_unwrapped('/ping') == "Pong!"
+        return self._get_unwrapped('/ping') == "Pong!"
 
     def version(self):
         """ Cachet version (GET /version).
         Appears to be unimplemented in Docker v. 2.0.1
         Returns: version string
         """
-        return self.get_unwrapped('/version')
+        return self._get_unwrapped('/version')
 
 # components
     def get_components(self):
         """ Return all components that have been created (GET /components).
         Returns: A list of dictionaries with component information.
         """
-        return self._get('/components', None)
+        return self._get('/components')
 
     def get_component(self, component_id):
         """ Return a single component, or None (GET /components/:id).
         Returns: A dictionary with component information.
         """
         url = '/components/' + str(component_id)
-        return self.get_unwrapped(url)
+        return self._get_unwrapped(url)
 
     def create_component(self, name, status, desc=None,
                          link=None, order=0, group_id=0, enabled=True):
@@ -136,7 +150,7 @@ class Connection(object):
         """ Get all component groups which have been created, or None (GET /components/groups).
         Returns: A list of dicts with component group information.
         """
-        return self._get('/components/groups', None)
+        return self._get('/components/groups')
 
     def get_component_group(self, group_id):
         """ GET /components/groups/:id
@@ -145,7 +159,7 @@ class Connection(object):
         Returns: A dict with component group information.
         """
         url = '/components/groups/' + str(group_id)
-        return self.get_unwrapped(url)
+        return self._get_unwrapped(url)
 
     def create_component_group(self):
         """ POST /components/groups
@@ -182,7 +196,7 @@ class Connection(object):
         """ Return all incidents (GET /incidents)
         Return: List of incident dicts
         """
-        return self._get('/incidents', None)
+        return self._get('/incidents')
 
     def get_incident(self, incident_id):
         """ Return a specific incident(GET /incidents/:id)
@@ -191,7 +205,7 @@ class Connection(object):
         Return: Dict of incident information
         """
         url = '/incidents/' + str(incident_id)
-        return self.get_unwrapped(url)
+        return self._get_unwrapped(url)
 
     def create_incident(self, name, message, status, visible=True,
                         component_id=None, component_status=None, notify=False):
@@ -238,7 +252,7 @@ class Connection(object):
         """ Returns all configured metrics (GET /metrics)
         Returns: a list of dicts of metric info.
         """
-        return self._get('/metrics', None)
+        return self._get('/metrics')
 
     def create_metric(self, name, suffix, description, default, display=True):
         """ Create a new metric (POST /metrics)
@@ -259,7 +273,7 @@ class Connection(object):
         Returns: A dictionary with metric information.
         """
         url = '/metrics/' + str(metric_id)
-        return self.get_unwrapped(url)
+        return self._get_unwrapped(url)
 
     def delete_metric(self, metric_id):
         """ Delete a metric (DELETE /metrics/:id)
@@ -290,7 +304,7 @@ class Connection(object):
         """ Get all subscribers (GET /subscribers)
         Returns: A list of subscriber dicts.
         """
-        return self._get('/subscribers', None)
+        return self._get('/subscribers')
 
     def create_subscriber(self, email, verify=False):
         """ Create a new subscriber (POST /subscribers)
