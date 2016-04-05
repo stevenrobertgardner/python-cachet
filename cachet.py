@@ -6,6 +6,7 @@
 """
 import logging
 import urllib.request
+import urllib.parse
 import urllib.error
 import json
 
@@ -29,7 +30,7 @@ class Connection(object):
         self.logger.debug("Setting cachet server URL: %s, API Token: %s",
                           self.cachet_api_url, self.api_token)
 
-    def _do_request(self, url, method, timeout=1):
+    def _do_request(self, url, method, payload=None, timeout=1):
         """ Prepare and make urllib GET request, process and translate json response.
         Args:
           url (string): the URL to get
@@ -38,7 +39,7 @@ class Connection(object):
         """
         headers = {'X-Cachet-Token' : self.api_token}
         try:
-            request = urllib.request.Request(url, headers=headers, method=method)
+            request = urllib.request.Request(url, payload, headers=headers, method=method)
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 data = response.read().decode('utf-8')
                 return json.loads(data)
@@ -51,7 +52,7 @@ class Connection(object):
         return None
 
     def _get(self, endpoint):
-        """ Broker the get request from a API call, handle paging
+        """ Broker the GET request from a API call, handle paging
         Args:
           endpoint (string): the endpoint to get.
         Returns: A list containing the response(s), or None
@@ -73,14 +74,37 @@ class Connection(object):
                 break
         return results
 
+    def _post(self, endpoint, params):
+        """Broker POST request from an API call
+        Args:
+          endpoint (string): The endpoint for the object to add.
+          params (dict): A dictionary with the update information.
+        Returns: Dict
+        """
+        url = self.cachet_api_url + endpoint
+        payload = urllib.parse.urlencode(params)
+        payload = payload.encode('utf-8')
+        # FIXME - this causes a 400
+        results = self._do_request(url, payload=payload, method='POST')
+        return results
+
+    def _put(self, endpoint, params):
+        """Broker PUT request from an API call
+        Args:
+          endpoint (string): The endpoint for the object to update.
+          params (dict): A dictionary with the update information.
+        Returns: Dict
+        """
+        pass
+
     def _delete(self, endpoint):
-        """Broker delete request from an API call
+        """Broker DELETE request from an API call
         Args:
           endpoint (string): The endpoint for the object to delete.
         Returns: None
         """
         url = self.cachet_api_url + endpoint
-        response_json = self._do_request(url, method='DELETE')
+        _ = self._do_request(url, method='DELETE')
 
 
     def _get_unwrapped(self, url):
@@ -123,20 +147,27 @@ class Connection(object):
         url = '/components/' + str(component_id)
         return self._get_unwrapped(url)
 
-    def create_component(self, name, status, desc=None,
-                         link=None, order=0, group_id=0, enabled=True):
+    def create_component(self, name, status, desc="",
+                         link="", order=0, group_id=0, enabled=True):
         """ Create a new component (POST /components).
         Args:
           name (string): Name of the component.
           status (int): Status of the component; 1-4.
-          description (Optional[string]): Description of the component.
+          desc (Optional[string]): Description of the component.
           link (Optional[string]): A hyperlink to the component.
           order (Optional[int]): Order of the component. Defaults to 0.
           group_id (Optional[int]): The group_id the component is within. Defaults to 0.
           enabled (Optional[bool]): Whether the component is enabled. Defaults to True.
         Returns: A dictionary with component information.
         """
-        pass
+        if enabled:
+            enabled_int = 1
+        else:
+            enabled_int = 0
+        params = {'name':name, 'description':desc, 'status':status, 'link':link,
+                  'order':order, 'group_id':group_id, 'enabled':enabled_int}
+        return self._post('/components', params)
+
 
     def update_component(self, component_id, name=None, status=None,
                          desc=None, link=None, order=None, group_id=None, enabled=None):
