@@ -73,7 +73,12 @@ class Connection(object):
                 break
         return results
 
-    def _delete(self,endpoint):
+    def _delete(self, endpoint):
+        """Broker delete request from an API call
+        Args:
+          endpoint (string): The endpoint for the object to delete.
+        Returns: None
+        """
         url = self.cachet_api_url + endpoint
         response_json = self._do_request(url, method='DELETE')
 
@@ -150,11 +155,12 @@ class Connection(object):
         pass
 
     def delete_component(self, component_id):
-        """ Delete a component (DELETE Components/:id).
+        """ Delete a component (DELETE /components/:id).
         Args:
           component_id (int): ID of the component to delete.
+        Returns: None
         """
-        pass
+        return self._delete('/components/' + str(component_id))
 
     def get_component_groups(self):
         """ Get all component groups which have been created, or None (GET /components/groups).
@@ -198,13 +204,14 @@ class Connection(object):
         """ DELETE /components/groups/:id
         Args:
           group_id (int): id of the component to delete.
+        Returns: None
         """
-        pass
+        return self._delete('/components/groups/' + str(group_id))
 
 # incidents
     def get_incidents(self):
         """ Return all incidents (GET /incidents)
-        Return: List of incident dicts
+        Returns: List of incident dicts
         """
         return self._get('/incidents')
 
@@ -212,7 +219,7 @@ class Connection(object):
         """ Return a specific incident(GET /incidents/:id)
         Args:
           incident_id (int): ID of the incident to get.
-        Return: Dict of incident information
+        Returns: Dict of incident information
         """
         url = '/incidents/' + str(incident_id)
         return self._get_unwrapped(url)
@@ -228,7 +235,7 @@ class Connection(object):
           component_id (Optional[int]): component to update (required with component_status)
           component_status (Optional[int]): The status to update the given component with.
           notify (bool): Whether to notify subscribers. Defaults to False.
-        Return: Dict of incident information
+        Returns: Dict of incident information
         """
         pass
 
@@ -245,7 +252,7 @@ class Connection(object):
           notify (bool): Whether to notify subscribers. Defaults to False.
           incident_id (int): The ID of the incident to update.
 
-        Return: Dict of incident information
+        Returns: Dict of incident information
         """
         pass
 
@@ -253,8 +260,9 @@ class Connection(object):
         """ Deletes an incident (DELETE /incidents/:id)
         Args:
           incident_id (int): The ID of the incident to delete.
+        Returns: None
         """
-        pass
+        return self._delete('/incidents/' + str(incident_id))
 
 
 # metrics
@@ -289,8 +297,9 @@ class Connection(object):
         """ Delete a metric (DELETE /metrics/:id)
         Args:
           metric_id (int): the id of the metric to delete.
+        Returns: None
         """
-        pass
+        return self._delete('/metrics/' + str(metric_id))
 
     def update_metric_points(self, metric_id, metric_value, timestamp=None):
         """ Add a metric point to a given metric (POST /metrics/:id/points)
@@ -298,6 +307,7 @@ class Connection(object):
           metric_id (int): the id of the metric to update.
           metric_value (int): value to plot on the metric graph.
           timestamp (Optional[string]): Unix timestamp of point. Defaults to current timestamp.
+        Returns: None
         """
         pass
 
@@ -306,8 +316,9 @@ class Connection(object):
         Args:
           metric_id (int): the id of the metric.
           point_id (int):  the id of the point to delete.
+        Returns: None
         """
-        pass
+        return self._delete('/metrics/' + str(metric_id) + '/points/' + str(point_id))
 
 # subscribers
     def get_subscribers(self):
@@ -329,6 +340,7 @@ class Connection(object):
         """ Delete a subscriber (DELETE /subscribers/:id)
         Args:
           subscriber_id (int): id of the subscriber to delete.
+        Returns: None
         """
         return self._delete('/subscribers/' + str(subscriber_id))
 
