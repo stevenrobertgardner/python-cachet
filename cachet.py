@@ -29,7 +29,7 @@ class Connection(object):
         self.logger.debug("Setting cachet server URL: %s, API Token: %s",
                           self.cachet_api_url, self.api_token)
 
-    def _do_get(self, url, timeout=1):
+    def _do_request(self, url, method, timeout=1):
         """ Prepare and make urllib GET request, process and translate json response.
         Args:
           url (string): the URL to get
@@ -38,16 +38,16 @@ class Connection(object):
         """
         headers = {'X-Cachet-Token' : self.api_token}
         try:
-            request = urllib.request.Request(url, headers=headers)
+            request = urllib.request.Request(url, headers=headers, method=method)
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 data = response.read().decode('utf-8')
                 return json.loads(data)
         except urllib.error.HTTPError as e:
-            print("HTTPError")
+            print("HTTPError: {}".format(e.code))
         except urllib.error.URLError as e:
             print("URLError")
-        # handle json exceptions here
-        # also need to handle 404 here, and log error
+        except ValueError:
+            pass
         return None
 
     def _get(self, endpoint):
@@ -59,7 +59,7 @@ class Connection(object):
         results = []
         url = self.cachet_api_url + endpoint
         while True:
-            response_json = self._do_get(url)
+            response_json = self._do_request(url, method='GET')
             if not response_json:
                 break
             data = response_json.get('data')
@@ -72,6 +72,11 @@ class Connection(object):
             if not url:
                 break
         return results
+
+    def _delete(self,endpoint):
+        url = self.cachet_api_url + endpoint
+        response_json = self._do_request(url, method='DELETE')
+
 
     def _get_unwrapped(self, url):
         """Return the first item from list returned by _get, or None
@@ -323,7 +328,8 @@ class Connection(object):
     def delete_subscriber(self, subscriber_id):
         """ Delete a subscriber (DELETE /subscribers/:id)
         Args:
-          subscriber_id: id of the subscriber to delete.
+          subscriber_id (int): id of the subscriber to delete.
         """
-        pass
+        return self._delete('/subscribers/' + str(subscriber_id))
+
 
