@@ -38,9 +38,9 @@ class FunctionalTestCase(unittest.TestCase):
     def test_component_crud(self):
         all_components = self.conn.get_components()
         start_id = self.get_max_id(all_components)
-        create_component_1 = self.conn.create_component(name="foo",desc="foo engine",status=1)
-        create_component_2 = self.conn.create_component(name="bar",desc="bar machine",status=1)
-        create_component_3 = self.conn.create_component(name="baz",desc="bazzifier",status=1)
+        component_1 = self.conn.create_component(name="foo",desc="foo engine",status=1)
+        component_2 = self.conn.create_component(name="bar",desc="bar machine",status=1)
+        component_3 = self.conn.create_component(name="baz",desc="bazzifier",status=1)
         second_component = self.conn.get_component(start_id + 2)
         time.sleep(2)
         second_component_name = None
@@ -50,6 +50,16 @@ class FunctionalTestCase(unittest.TestCase):
         delete_response = self.conn.delete_component(start_id + 2)
         second_component_after_delete = self.conn.get_component(start_id + 2)
         self.assertEqual(second_component_after_delete,None)
+
+        # TODO - check the returned dictionary from one of these
+
+    def test_incident_crud(self):
+        all_incidents = self.conn.get_incidents()
+        start_id = self.get_max_id(all_incidents)
+        incident_1 = self.conn.create_incident('World Disaster','Armageddon!!',1)
+        self.assertEqual('World Disaster', (self.conn.get_incident(start_id + 1))['name'])
+        
+
 
     def test_subscriber_crud(self):
         start_id = self.get_max_id(self.conn.get_subscribers())
