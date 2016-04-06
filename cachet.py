@@ -198,7 +198,7 @@ class Connection(object):
         return self._get('/components/groups')
 
     def get_component_group(self, group_id):
-        """ GET /components/groups/:id
+        """ Get a single component group by id (GET /components/groups/:id).
         Args:
           group_id (int): ID of the component group.
         Returns: A dict with component group information.
@@ -206,8 +206,8 @@ class Connection(object):
         url = '/components/groups/' + str(group_id)
         return self._get_unwrapped(url)
 
-    def create_component_group(self):
-        """ POST /components/groups
+    def create_component_group(self, name, order=False, collapsed=0):
+        """ Create a component group (POST /components/groups).
         Args:
           name (str): Name of the component group.
           order (Optional[int]): Order of the component group.
@@ -215,7 +215,10 @@ class Connection(object):
                  0=No,1=Yes,2=not_operational. Defaults to 0.
         Returns: Dict with group settings.
         """
-        pass
+        params = {'name' : name, 'collapsed' : collapsed}
+        if order:
+            params['order'] = order
+        return self._post('/components/groups', params)
 
     def update_component_group(self, group_id, name=None, order=None, collapsed=None):
         """ PUT /components/groups/:id
@@ -253,20 +256,30 @@ class Connection(object):
         url = '/incidents/' + str(incident_id)
         return self._get_unwrapped(url)
 
-    def create_incident(self, name, message, status, visible=True,
+    def create_incident(self, name, message, status, visible=1,
                         component_id=None, component_status=None, notify=False):
         """ Create a new incident (POST /incidents)
         Args:
           name (str): Name of the incident.
           message (str): Markdown formatted message with explanations.
           status (int): Status of the incident.
-          visible (Optional[bool]): Whether the incident is visible. Defaults to True
+          visible (Optional[bool]): Whether the incident is visible. Defaults to 1
           component_id (Optional[int]): component to update (required with component_status)
           component_status (Optional[int]): The status to update the given component with.
-          notify (bool): Whether to notify subscribers. Defaults to False.
+          notify (int): Whether to notify subscribers. Defaults to 0. 0 = false, 1 = true
         Returns: Dict of incident information
         """
-        pass
+        # TODO handle status better
+        params = {'name' : name, 'message' : message, 'status' : status}
+        if not visible:
+            params['visible'] = 0
+        if component_id:
+            params['component_id'] = component_id
+        if component_status:
+            params['component_status'] = component_status
+        if notify:
+            params['notify'] = 1
+        return self._post('/incidents', params)
 
     def update_incident(self, name, message, status, visible=True,
                         component_id=None, component_status=None, notify=False):
@@ -278,11 +291,12 @@ class Connection(object):
           visible (Optional[bool]): Whether the incident is visible. Defaults to True
           component_id (Optional[int]): component to update (required with component_status)
           component_status (Optional[int]): The status to update the given component with.
-          notify (bool): Whether to notify subscribers. Defaults to False.
+          notify (Optional[bool]): Whether to notify subscribers. Defaults to False.
           incident_id (int): The ID of the incident to update.
 
         Returns: Dict of incident information
         """
+        # TODO handle status better
         pass
 
     def delete_incident(self, incident_id):
@@ -311,7 +325,9 @@ class Connection(object):
           display (Optional[bool]): whether to display chart on page. Defaults to True.
         Returns: A dictionary with the args used to create the metric.
         """
-        pass
+        params = {'name':name, 'suffix':suffix, 'description': description,
+                  'default': default, 'display': display}
+        return self._post('/metrics', params)
 
     def get_metric(self, metric_id):
         """ Return a single metric, without points (GET /metrics/:id)
