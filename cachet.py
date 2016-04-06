@@ -4,11 +4,11 @@
  Makes an authenticated connection,  passes on API requests
  and makes the returned stuff be nice and pythony.
 """
-import logging
-import urllib.request
-import urllib.parse
-import urllib.error
-import json
+from logging import getLogger
+from urllib.request import Request, urlopen
+from urllib.parse import urlencode
+from urllib.error import HTTPError, URLError
+from json import loads
 
 class Connection(object):
     """
@@ -23,12 +23,11 @@ class Connection(object):
           api_token (string): API authentication token.
         Returns: A cachet 'connection' object.
         """
-        ### TODO - validate args, clean up URL
-        self.logger = logging.getLogger(__name__)
+        self.logger = getLogger(__name__)
         self.cachet_api_url = cachet_url + '/api/v1'
         self.api_token = api_token
-        self.logger.debug("Setting cachet server URL: %s, API Token: %s",
-                          self.cachet_api_url, self.api_token)
+        self.logger.debug("Setting cachet server URL: %s", self.cachet_api_url)
+        self.logger.debug("Setting API Token: %s", self.api_token)
 
     def _do_request(self, url, method, payload=None, timeout=1):
         """ Prepare and make urllib GET request, process and translate json response.
@@ -39,15 +38,15 @@ class Connection(object):
         """
         headers = {'X-Cachet-Token' : self.api_token}
         try:
-            request = urllib.request.Request(url, payload, headers=headers, method=method)
-            with urllib.request.urlopen(request, timeout=timeout) as response:
+            request = Request(url, payload, headers=headers, method=method)
+            with urlopen(request, timeout=timeout) as response:
                 data = response.read().decode('utf-8')
-                return json.loads(data)
-        except urllib.error.HTTPError as e:
-            print("HTTPError: {}".format(e.code))
-        except urllib.error.URLError as e:
-            print("URLError")
-        except ValueError:
+                return loads(data)
+        except HTTPError as http_error:
+            self.logger.debug("HTTPError: %s", http_error.code)
+        except URLError:
+            self.logger.debug("URLError")
+        except ValueError:     # trap json loads on None.
             pass
         return None
 
@@ -82,9 +81,8 @@ class Connection(object):
         Returns: Dict
         """
         url = self.cachet_api_url + endpoint
-        payload = urllib.parse.urlencode(params)
+        payload = urlencode(params)
         payload = payload.encode('utf-8')
-        # FIXME - this causes a 400
         results = self._do_request(url, payload=payload, method='POST')
         return results
 
@@ -365,7 +363,8 @@ class Connection(object):
           verify (Optional[bool]): send a verification email? Defaults to False.
         Returns: Dict with verify_code, id and other info.
         """
-        pass
+        params = {'email':email, 'verify':verify}
+        return self._post('/subscribers', params)
 
     def delete_subscriber(self, subscriber_id):
         """ Delete a subscriber (DELETE /subscribers/:id)
