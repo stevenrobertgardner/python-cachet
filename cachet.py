@@ -10,6 +10,7 @@ from urllib.parse import urlencode
 from urllib.error import HTTPError, URLError
 from json import loads
 
+
 class Connection(object):
     """
     Class representing a connection to a Cachet server,
@@ -93,7 +94,11 @@ class Connection(object):
           params (dict): A dictionary with the update information.
         Returns: Dict
         """
-        pass
+        url = self.cachet_api_url + endpoint
+        payload = urlencode(params)
+        payload = payload.encode('utf-8')
+        results = self._do_request(url, payload=payload, method='PUT')
+        return results
 
     def _delete(self, endpoint):
         """Broker DELETE request from an API call
@@ -103,7 +108,6 @@ class Connection(object):
         """
         url = self.cachet_api_url + endpoint
         _ = self._do_request(url, method='DELETE')
-
 
     def _get_unwrapped(self, url):
         """Return the first item from list returned by _get, or None
@@ -167,8 +171,7 @@ class Connection(object):
         return self._post('/components', params)
 
 
-    def update_component(self, component_id, name=None, status=None,
-                         desc=None, link=None, order=None, group_id=None, enabled=None):
+    def update_component(self, component_id, **args):
         """ Update a component (PUT /components/:id).
         Args:
           component_id (int): The ID of the component.
@@ -181,7 +184,7 @@ class Connection(object):
           enabled (Optional[bool]): Whether the component is enabled.
         Returns: A dictionary with component information.
         """
-        pass
+        return self._put('/components/' + str(component_id), args)
 
     def delete_component(self, component_id):
         """ Delete a component (DELETE /components/:id).
@@ -220,7 +223,7 @@ class Connection(object):
             params['order'] = order
         return self._post('/components/groups', params)
 
-    def update_component_group(self, group_id, name=None, order=None, collapsed=None):
+    def update_component_group(self, group_id, **args):
         """ PUT /components/groups/:id
         Args:
           group_id (int): id of the component group.
@@ -230,7 +233,7 @@ class Connection(object):
                  0=No,1=Yes,2=not_operational. Defaults to 0.
         Returns: Dict with group settings.
         """
-        pass
+        return self._put('/components/groups/' + str(group_id), args)
 
     def delete_component_group(self, group_id):
         """ DELETE /components/groups/:id
@@ -264,8 +267,8 @@ class Connection(object):
           message (str): Markdown formatted message with explanations.
           status (int): Status of the incident.
           visible (Optional[bool]): Whether the incident is visible. Defaults to 1
-          component_id (Optional[int]): component to update (required with component_status)
-          component_status (Optional[int]): The status to update the given component with.
+          component_id (Optional[int]): component for incident (required with component_status)
+          component_status (Optional[int]): The status for the given component.
           notify (int): Whether to notify subscribers. Defaults to 0. 0 = false, 1 = true
         Returns: Dict of incident information
         """
@@ -297,7 +300,6 @@ class Connection(object):
         Returns: Dict of incident information
         """
         # TODO handle status better
-        pass
 
     def delete_incident(self, incident_id):
         """ Deletes an incident (DELETE /incidents/:id)

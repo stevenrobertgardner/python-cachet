@@ -10,12 +10,7 @@ import time
 import cachet
 
 CACHET_SERVER = 'http://192.168.99.100:80'
-API_KEY       = 'vJvJtdfvPZjtoGuwfyfF'
-
-#conn = cachet.Connection(CACHET_SERVER,API_KEY)
-
-#health  = conn.health()    # Assert this is true
-#version = conn.version()  # Assert this is correct
+API_KEY       = 'dPyVPEYiFCxEjk4t0KGt'
 
 
 class FunctionalTestCase(unittest.TestCase):
@@ -37,33 +32,27 @@ class FunctionalTestCase(unittest.TestCase):
 
     def test_component_crud(self):
         all_components = self.conn.get_components()
-        start_id = self.get_max_id(all_components)
         component_1 = self.conn.create_component(name="foo",desc="foo engine",status=1)
         component_2 = self.conn.create_component(name="bar",desc="bar machine",status=1)
         component_3 = self.conn.create_component(name="baz",desc="bazzifier",status=1)
-        second_component = self.conn.get_component(start_id + 2)
+        component_2_id = component_2['data']['id']
+        component_2_name = component_2['data']['name']
+        second_component = self.conn.get_component(component_2_id)
         time.sleep(2)
-        second_component_name = None
-        if second_component:
-            second_component_name = second_component.get('name')
-        self.assertEqual(second_component_name,'bar')
-        delete_response = self.conn.delete_component(start_id + 2)
-        second_component_after_delete = self.conn.get_component(start_id + 2)
+        self.assertEqual(component_2_name,'bar')
+        delete_response = self.conn.delete_component(component_2_id)
+        second_component_after_delete = self.conn.get_component(component_2_id)
         self.assertEqual(second_component_after_delete,None)
-
-        # TODO - check the returned dictionary from one of these
 
     def test_incident_crud(self):
         all_incidents = self.conn.get_incidents()
-        start_id = self.get_max_id(all_incidents)
         incident_1 = self.conn.create_incident('World Disaster','Armageddon!!',1)
-        self.assertEqual('World Disaster', (self.conn.get_incident(start_id + 1))['name'])
-        
-
+        incident_1_id   = incident_1['data']['id']
+        incident_1_name = incident_1['data']['name']
+        self.assertEqual(incident_1_name, (self.conn.get_incident(incident_1_id))['name'])
 
     def test_subscriber_crud(self):
-        start_id = self.get_max_id(self.conn.get_subscribers())
-        # create subscriber sans verify
+        # create subscribers, sans verify
         subscriber_1 = self.conn.create_subscriber(email="testing1@bar.com",verify=False)
         subscriber_2 = self.conn.create_subscriber(email="testing2@bar.com",verify=False)
         subscribers = self.conn.get_subscribers()
