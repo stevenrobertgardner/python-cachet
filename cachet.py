@@ -184,6 +184,7 @@ class Connection(object):
           enabled (Optional[bool]): Whether the component is enabled.
         Returns: A dictionary with component information.
         """
+        # TODO
         return self._put('/components/' + str(component_id), args)
 
     def delete_component(self, component_id):
@@ -224,7 +225,7 @@ class Connection(object):
         return self._post('/components/groups', params)
 
     def update_component_group(self, group_id, **args):
-        """ PUT /components/groups/:id
+        """ Update a component group (PUT /components/groups/:id)
         Args:
           group_id (int): id of the component group.
           name (Optional[str]): Name of the component group.
@@ -236,7 +237,7 @@ class Connection(object):
         return self._put('/components/groups/' + str(group_id), args)
 
     def delete_component_group(self, group_id):
-        """ DELETE /components/groups/:id
+        """ Delete a component group (DELETE /components/groups/:id)
         Args:
           group_id (int): id of the component to delete.
         Returns: None
@@ -259,7 +260,7 @@ class Connection(object):
         url = '/incidents/' + str(incident_id)
         return self._get_unwrapped(url)
 
-    def create_incident(self, name, message, status, visible=1,
+    def create_incident(self, name, message, status, visible=True,
                         component_id=None, component_status=None, notify=False):
         """ Create a new incident (POST /incidents)
         Args:
@@ -272,7 +273,6 @@ class Connection(object):
           notify (int): Whether to notify subscribers. Defaults to 0. 0 = false, 1 = true
         Returns: Dict of incident information
         """
-        # TODO handle status better
         params = {'name' : name, 'message' : message, 'status' : status}
         if not visible:
             params['visible'] = 0
@@ -284,11 +284,12 @@ class Connection(object):
             params['notify'] = 1
         return self._post('/incidents', params)
 
-    def update_incident(self, name, message, status, visible=True,
+    def update_incident(self, incident_id, name, message, status, visible=True,
                         component_id=None, component_status=None, notify=False):
-        """ Update an (PUT /incidents)
+        """ Update an incident (PUT /incidents)
         Args:
           name (str): Name of the incident.
+          incident_id (int): The ID of the incident to update.
           message (str): Markdown formatted message with explanations.
           status (int): Status of the incident.
           visible (Optional[bool]): Whether the incident is visible. Defaults to True
@@ -299,7 +300,16 @@ class Connection(object):
 
         Returns: Dict of incident information
         """
-        # TODO handle status better
+        params = {'name' : name, 'message' : message, 'status' : status}
+        if not visible:
+            params['visible'] = 0
+        if component_id:
+            params['component_id'] = component_id
+        if component_status:
+            params['component_status'] = component_status
+        if notify:
+            params['notify'] = 1
+        return self._put('/incidents/' + str(incident_id), params)
 
     def delete_incident(self, incident_id):
         """ Deletes an incident (DELETE /incidents/:id)
@@ -356,7 +366,10 @@ class Connection(object):
           timestamp (Optional[string]): Unix timestamp of point. Defaults to current timestamp.
         Returns: None
         """
-        pass
+        params = {'metric_value':metric_value}
+        if timestamp:
+            params['timestamp'] = timestamp
+        return self._post('/metrics/' + str(metric_id) + '/points', params)
 
     def delete_metric_points(self, metric_id, point_id):
         """ Delete a metric point (DELETE /metrics/:id/points/:point_id)
